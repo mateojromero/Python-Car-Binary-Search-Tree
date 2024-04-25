@@ -1,0 +1,202 @@
+
+from Car import Car
+from CarInventoryNode import CarInventoryNode
+
+class CarInventory:
+    def __init__(self):
+        self.root = None
+
+    def insert(self, current_node, car):
+        if current_node is None:
+            return CarInventoryNode(car)
+        if car.make < current_node.make or (car.make == current_node.make and car.model < current_node.model):
+            if current_node.left is None:
+                current_node.left = CarInventoryNode(car)
+            else:
+                self.insert(current_node.left, car)
+        elif car.make > current_node.make or (car.make == current_node.make and car.model > current_node.model):
+            if current_node.right is None:
+                current_node.right = CarInventoryNode(car)
+            else:
+                self.insert(current_node.right, car)
+        else:
+            current_node.cars.append(car)
+
+    def add_car(self, car):
+        if self.root is None:
+            self.root = CarInventoryNode(car)
+        else:
+            self.insert(self.root, car)
+
+    def does_car_exist(self, car):
+        node = self.root
+        while node is not None:
+            if car.make < node.make:
+                node = node.left
+            elif car.make > node.make:
+                node = node.right
+            elif car.model < node.model:
+                node = node.left
+            elif car.model > node.model:
+                node = node.right
+            else:  
+                for c in node.cars:
+                    if car.year == c.year and car.price == c.price:
+                        return True
+                return False  
+        return False
+
+    def inorder(self):
+        return self.inorder_helper(self.root)
+
+    def inorder_helper(self, node):
+        if node is None:
+            return ''
+        return self.inorder_helper(node.left) + str(node) + self.inorder_helper(node.right)
+
+    def preorder(self):
+        return self.preorder_helper(self.root)
+
+    def preorder_helper(self, node):
+        if node is None:
+            return ''
+        return str(node) + self.preorder_helper(node.left) + self.preorder_helper(node.right)
+
+    def postorder(self):
+        return self.postorder_helper(self.root)
+
+    def postorder_helper(self, node):
+        if node is None:
+            return ''
+        return self.postorder_helper(node.left) + self.postorder_helper(node.right) + str(node)
+
+    def get_best_car(self, make, model):
+        node = self.root
+        while node:
+            if make.upper() < node.make:
+                node = node.left
+            elif make.upper() > node.make:
+                node = node.right
+            elif model.upper() < node.model:
+                node = node.left
+            elif model.upper() > node.model:
+                node = node.right
+            else:  
+                best_car = None
+                for car in node.cars:
+                    if not best_car:
+                        best_car = car
+                    elif car.year > best_car.year or (car.year == best_car.year and car.price > best_car.price):
+                        best_car = car
+                return best_car
+        return None
+
+    def get_worst_car(self, make, model):
+        node = self.root
+        while node:
+            if make.upper() < node.make:
+                node = node.left
+            elif make.upper() > node.make:
+                node = node.right
+            elif model.upper() < node.model:
+                node = node.left
+            elif model.upper() > node.model:
+                node = node.right
+            else: 
+                worst_car = None
+                for car in node.cars:
+                    if not worst_car:
+                        worst_car = car
+                    elif car.year < worst_car.year or (car.year == worst_car.year and car.price < worst_car.price):
+                        worst_car = car
+                return worst_car
+        return None
+
+    def get_total_inventory_price(self):
+        total = 0
+        nodelist = [self.root]
+        while nodelist:
+            current = nodelist.pop()
+            if current:
+                for car in current.cars:
+                    total += car.price
+                nodelist.append(current.left)
+                nodelist.append(current.right)
+        return total
+
+    def get_successor(self, make, model):
+        make_upper = make.upper()
+        model_upper = model.upper()
+        current = self.root
+        successor = None
+        while current is not None:
+            if current.make < make_upper or (current.make == make_upper and current.model <= model_upper):
+                current = current.right
+            else:
+                successor = current
+                current = current.left
+
+        if successor:
+            return successor
+        return None
+    
+
+
+
+    def remove_car(self, make, model, year, price):
+        make = make.upper()
+        model = model.upper()
+        target_car = Car(make, model, year, price)
+        current = self.root
+        parent = None
+        is_left_child = False
+
+        while current is not None:
+            if make < current.make or (make == current.make and model < current.model):
+                parent = current
+                current = current.left
+                is_left_child = True
+            elif make > current.make or (make == current.make and model > current.model):
+                parent = current
+                current = current.right
+                is_left_child = False
+            else:
+                found = False
+                for car in current.cars:
+                    if car.year == year and car.price == price and car.make == make and car.model == model:
+                        current.cars.remove(car)
+                        found = True
+                        break
+                if not found:
+                    return False
+                if not current.cars:
+                    if current.left is None and current.right is None:
+                        if parent is None:
+                            self.root = None
+                        elif is_left_child:
+                            parent.left = None
+                        else:
+                            parent.right = None
+                    elif current.right is None:
+                        if parent is None:
+                            self.root = current.left
+                        elif is_left_child:
+                            parent.left = current.left
+                        else:
+                            parent.right = current.left
+                    elif current.left is None:
+                        if parent is None:
+                            self.root = current.right
+                        elif is_left_child:
+                            parent.left = current.right
+                        else:
+                            parent.right = current.right
+                    else:
+                        successor = self.get_successor(make, model)
+                        if successor:
+                            self.remove_car(successor.make, successor.model, successor.cars[0].year, successor.cars[0].price)
+                            current.make = successor.make
+                            current.model = successor.model
+                            current.cars = successor.cars
+                return True
+        return False
